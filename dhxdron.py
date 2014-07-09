@@ -9,10 +9,11 @@ import svg
 
 radius = 160.
 thickness = .9
-
+overhang = .3
+overcut = .4
 
 #
-# inkscape sizes
+# convert to inkscape sizes
 #
 
 dpi = 90.
@@ -20,73 +21,88 @@ native_scale = dpi/25.4
 
 radius *= native_scale
 thickness *= native_scale
+overhang *= native_scale
+overcut *= native_scale
 
 #
 
-jagged_longedge = tuple( (x/10., y) for x,y in (
-    (0,  0),
-    (2,  0),
-    (2,  1.5),
-    (3,  1.5),
-    (3, -1.5),
-    (3.15, -1.5),
-    (3.15, -1),
-    (3.85, -1),
-    (3.85, -1.5),
-    (4, -1.5),
-    (4,  0),
-    (6,  0),
-    (6,  1.5),
-    (7,  1.5),
-    (7, -1.5),
-    (7.15, -1.5),
-    (7.15, -1),
-    (7.85, -1),
-    (7.85, -1.5),
-    (8, -1.5),
-    (8,  0),
-    #(10, 0),
-) )
+def jagged_longedge(a, b, angle, thickness, overhang, overcut):
 
+    indent = thickness/tan(angle)
+    extend = thickness/sin(angle) + overhang
 
-slot_long = tuple( (x/10., y) for x,y in (
-    (4.8,  -3),
-    (4.8,  -4.2),
-    (5.2,  -4.2),
-    (5.2,  -3),
-) )
+    return replace_line(a, b, tuple( (x/10., y) for x,y in (
+        (0,    0),
+        (2,    0),
+        (2,    extend),
+        (3,    extend),
+        (3,    -indent-overcut),
+        (3.15, -indent-overcut),
+        (3.15, -indent),
+        (3.85, -indent),
+        (3.85, -indent-overcut),
+        (4,    -indent-overcut),
+        (4,    0),
+        (6,    0),
+        (6,    extend),
+        (7,    extend),
+        (7,    -indent-overcut),
+        (7.15, -indent-overcut),
+        (7.15, -indent),
+        (7.85, -indent),
+        (7.85, -indent-overcut),
+        (8,    -indent-overcut),
+        (8,    0),
+        #(10,   0),
+    ) ) )
 
-jagged_shortedge = tuple( (x/7., y) for x,y in (
-    (0,  0),
-    (1,  0),
-    (1,  1.5),
-    (2,  1.5),
-    (2, -1.5),
-    (2.15, -1.5),
-    (2.15, -1),
-    (2.85, -1),
-    (2.85, -1.5),
-    (3, -1.5),
-    (3,  0),
-    (4,  0),
-    (4,  1.5),
-    (5,  1.5),
-    (5, -1.5),
-    (5.15, -1.5),
-    (5.15, -1),
-    (5.85, -1),
-    (5.85, -1.5),
-    (6, -1.5),
-    (6,  0),
-    #(7, 0),
-) )
+def jagged_shortedge(a, b, angle, thickness, overhang, overcut):
 
-slot_short = tuple( (x/7., y) for x,y in (
-    (3.3,  -3),
-    (3.3,  -4.2),
-    (3.7,  -4.2),
-    (3.7,  -3),
-) )
+    indent = thickness/tan(angle)
+    extend = thickness/sin(angle) + overhang
+
+    return replace_line(a, b, tuple( (x/7., y) for x,y in (
+        (0,    0),
+        (1,    0),
+        (1,    extend),
+        (2,    extend),
+        (2,    -indent-overcut),
+        (2.15, -indent-overcut),
+        (2.15, -indent),
+        (2.85, -indent),
+        (2.85, -indent-overcut),
+        (3,    -indent-overcut),
+        (3,    0),
+        (4,    0),
+        (4,    extend),
+        (5,    extend),
+        (5,    -indent-overcut),
+        (5.15, -indent-overcut),
+        (5.15, -indent),
+        (5.85, -indent),
+        (5.85, -indent-overcut),
+        (6,    -indent-overcut),
+        (6,    0),
+        #(7,    0),
+    ) ) )
+
+def slot_long(a, b, unit):
+
+    return replace_line(a, b, tuple( (x/10., y) for x,y in (
+        (4.8,  -3  *unit),
+        (4.8,  -4.2*unit),
+        (5.2,  -4.2*unit),
+        (5.2,  -3  *unit),
+    ) ) )
+
+def slot_short(a, b, unit):
+
+    return replace_line(a, b, tuple( (x/7., y) for x,y in (
+        (3.3,  -3  *unit),
+        (3.3,  -4.2*unit),
+        (3.7,  -4.2*unit),
+        (3.7,  -3  *unit),
+    ) ) )
 
 def normalize2( (x, y) ):
     d = sqrt(x*x+y*y)
@@ -101,13 +117,13 @@ def vector_add2( (x1,y1), (x2,y2) ):
 def interpolate2( (x1,y1), (x2,y2), frac ):
     return ( x2*frac+x1*(1-frac), y2*frac+y1*(1-frac) )
 
-def jagedge(a, b, jag, w):
+def replace_line(a, b, jag):
     edges = []
 
     x, y = a
     dx, dy = normalize2(vector_sub2(b, a))
     for l, v in jag:
-        edges.append( vector_add2(interpolate2(a, b, l), (-dy*w*v, dx*w*v) ) )
+        edges.append( vector_add2(interpolate2(a, b, l), (-dy*v, dx*v) ) )
 
     return edges
         
@@ -211,13 +227,12 @@ def shape(radius, thickness):
     a, b, c, d = ( (x*radius, y*radius) for x,y in dhxdron_deltoid_2d_coords() )
     
     angle = deltoid_get_angle()
-    indent = 1./tan(angle)*thickness
 
     edges = (
-        jagedge(a, b, jagged_shortedge, indent),
-        jagedge(b, c, jagged_longedge, indent),
-        jagedge(c, d, jagged_longedge, indent),
-        jagedge(d, a, jagged_shortedge, indent),
+        jagged_shortedge(a, b, angle, thickness, overhang, overcut),
+        jagged_longedge(b, c, angle, thickness, overhang, overcut),
+        jagged_longedge(c, d, angle, thickness, overhang, overcut),
+        jagged_shortedge(d, a, angle, thickness, overhang, overcut),
     )
     return [ c for e in edges for c in e ]
 
@@ -227,10 +242,10 @@ def slots(radius):
     a, b, c, d = ( (x*radius, y*radius) for x,y in dhxdron_deltoid_2d_coords() )
     
     return (
-        jagedge(a, b, slot_short, native_scale),
-        jagedge(b, c, slot_long, native_scale),
-        jagedge(c, d, slot_long, native_scale),
-        jagedge(d, a, slot_short, native_scale),
+        slot_short(a, b, native_scale),
+        slot_long(b, c, native_scale),
+        slot_long(c, d, native_scale),
+        slot_short(d, a, native_scale),
     )
 
 style = 'stroke:none;fill:#0000ff;opacity:.3'
